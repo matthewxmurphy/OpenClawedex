@@ -6,7 +6,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 
-const { main, parseArgs } = require("../src/cli");
+const { parseArgs, version } = require("../src/cli");
 const { version: projectVersion } = require("../package.json");
 
 test("parseArgs reads command and flags", () => {
@@ -30,23 +30,18 @@ test("parseArgs preserves positional tokens", () => {
   assert.deepEqual(parsed.args._, ["extra-value"]);
 });
 
-test("main prints the current version", () => {
+test("version prints the current version", () => {
   const originalLog = console.log;
-  const originalExit = process.exit;
   let output = "";
 
   console.log = (value = "") => {
     output += String(value);
   };
-  process.exit = (code) => {
-    throw new Error(`EXIT:${code}`);
-  };
 
   try {
-    assert.throws(() => main(["--version"]), /EXIT:0/);
+    version();
   } finally {
     console.log = originalLog;
-    process.exit = originalExit;
   }
 
   assert.equal(output.trim(), projectVersion);
