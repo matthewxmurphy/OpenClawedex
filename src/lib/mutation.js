@@ -1,5 +1,7 @@
 "use strict";
 
+const path = require("path");
+
 const { DEFAULT_MODEL, DEFAULT_TRANSPORT } = require("../constants");
 const {
   buildBackupPath,
@@ -90,6 +92,93 @@ function syncCodexAuth(paths, dryRun) {
   return { synced: true, reason: "copied" };
 }
 
+function decodeJwtPayload(token) {
+  if (typeof token !== "string") return null;
+  const parts = token.split(".");
+  if (parts.length < 2) return null;
+
+  try {
+    return JSON.parse(Buffer.from(parts[1], "base64url").toString("utf8"));
+  } catch {
+    return null;
+  }
+}
+
+function buildOpenAICodexProfile(authJson) {
+  const tokens = authJson?.tokens || {};
+  const accessToken = typeof tokens.access_token === "string" ? tokens.access_token.trim() : "";
+  const refreshToken = typeof tokens.refresh_token === "string" ? tokens.refresh_token.trim() : "";
+  const accountId = typeof tokens.account_id === "string" ? tokens.account_id.trim() : "";
+  const idToken = typeof tokens.id_token === "string" ? tokens.id_token.trim() : "";
+
+  if (!accessToken || !refreshToken) {
+    return null;
+  }
+
+  const accessPayload = decodeJwtPayload(accessToken) || {};
+  const idPayload = decodeJwtPayload(idToken) || {};
+  const email = typeof idPayload.email === "string" && idPayload.email.trim()
+    ? idPayload.email.trim()
+    : null;
+  const expires = Number.isFinite(accessPayload.exp)
+    ? Number(accessPayload.exp) * 1000
+    : Date.now() + (55 * 60 * 1000);
+  const profileId = `openai-codex:${email || "default"}`;
+
+  return {
+    profileId,
+    credential: {
+      type: "oauth",
+      provider: "openai-codex",
+      access: accessToken,
+      refresh: refreshToken,
+      expires,
+      ...(accountId ? { accountId } : {}),
+      ...(email ? { email } : {}),
+    },
+  };
+}
+
+function syncOpenAICodexProfile(paths, dryRun) {
+  if (!exists(paths.codexAuth)) {
+    return { imported: false, reason: "missing-source-auth", profileId: null };
+  }
+
+  const authJson = readJsonIfExists(paths.codexAuth);
+  const nextProfile = buildOpenAICodexProfile(authJson);
+  if (!nextProfile) {
+    return { imported: false, reason: "missing-codex-tokens", profileId: null };
+  }
+
+  const existingStore = readJsonIfExists(paths.authProfiles) || { version: 1, profiles: {} };
+  const existingProfile = existingStore.profiles?.[nextProfile.profileId] || null;
+  const profileMatches = JSON.stringify(existingProfile) === JSON.stringify(nextProfile.credential);
+
+  if (!dryRun) {
+    const nextStore = {
+      ...existingStore,
+      version: existingStore.version || 1,
+      profiles: {
+        ...(existingStore.profiles || {}),
+        [nextProfile.profileId]: nextProfile.credential,
+      },
+      lastGood: {
+        ...(existingStore.lastGood || {}),
+        "openai-codex": nextProfile.profileId,
+      },
+    };
+
+    ensureDir(path.dirname(paths.authProfiles), false);
+    writeJson(paths.authProfiles, nextStore, false);
+  }
+
+  return {
+    imported: !profileMatches,
+    reason: profileMatches ? "already-imported" : "imported",
+    profileId: nextProfile.profileId,
+  };
+}
+
 function configureState(paths, options) {
   const dryRun = Boolean(options.dryRun);
   const config = readJsonIfExists(paths.openclawConfig);
@@ -98,6 +187,7 @@ function configureState(paths, options) {
   }
 
   const syncResult = syncCodexAuth(paths, dryRun);
+  const oauthResult = syncOpenAICodexProfile(paths, dryRun);
   const patchResult = patchConfig(config, options);
   const backupPath = buildBackupPath(paths.openclawConfig);
 
@@ -115,14 +205,21 @@ function configureState(paths, options) {
     backupPath,
     model: options.model || DEFAULT_MODEL,
     transport: options.transport || DEFAULT_TRANSPORT,
+    oauthProfileId: oauthResult.profileId,
+    importedOauthProfile: oauthResult.imported,
     updatedAgent: patchResult.updatedAgent,
-    needsOauthImport: detectProviderProfiles(profiles, "openai-codex").length === 0,
+    needsOauthImport:
+      !oauthResult.profileId &&
+      detectProviderProfiles(profiles, "openai-codex").length === 0,
   };
 }
 
 module.exports = {
+  buildOpenAICodexProfile,
   configureState,
+  decodeJwtPayload,
   ensureModelObject,
   patchConfig,
+  syncOpenAICodexProfile,
   syncCodexAuth,
 };
