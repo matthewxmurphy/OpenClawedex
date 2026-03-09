@@ -1,7 +1,15 @@
 # OpenClawedex
 
 <p align="center">
-  <img src="docs/media/openclawedex-v0.0.7-social.png" alt="OpenClawedex v0.0.7 release graphic" width="100%">
+  <img src="docs/media/openclawedex-v0.0.7-social.png" alt="OpenClawedex project banner" width="100%">
+</p>
+
+<p align="center">
+  <img alt="Version 0.0.8" src="https://img.shields.io/badge/version-0.0.8-F28C28?style=for-the-badge">
+  <img alt="OpenClaw Gateway Ops" src="https://img.shields.io/badge/OpenClaw-gateway%20ops-0EA5E9?style=for-the-badge">
+  <img alt="Codex OAuth" src="https://img.shields.io/badge/Codex-OAuth-1D4ED8?style=for-the-badge">
+  <img alt="GPT-5.4 Ready" src="https://img.shields.io/badge/GPT--5.4-ready-7C3AED?style=for-the-badge">
+  <img alt="Node 20+" src="https://img.shields.io/badge/node-20%2B-16A34A?style=for-the-badge">
 </p>
 
 OpenClawedex is standalone tooling for Matthew X. Murphy's OpenClaw gateway workflow.
