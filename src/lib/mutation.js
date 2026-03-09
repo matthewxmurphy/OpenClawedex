@@ -69,6 +69,10 @@ function patchConfig(config, options) {
   return { config: next, updatedAgent };
 }
 
+function jsonEquals(left, right) {
+  return JSON.stringify(left) === JSON.stringify(right);
+}
+
 function syncCodexAuth(paths, dryRun) {
   if (!exists(paths.codexAuth)) {
     return { synced: false, reason: "missing-source-auth" };
@@ -153,8 +157,10 @@ function syncOpenAICodexProfile(paths, dryRun) {
   const existingStore = readJsonIfExists(paths.authProfiles) || { version: 1, profiles: {} };
   const existingProfile = existingStore.profiles?.[nextProfile.profileId] || null;
   const profileMatches = JSON.stringify(existingProfile) === JSON.stringify(nextProfile.credential);
+  const lastGoodProfile = existingStore.lastGood?.["openai-codex"] || null;
+  const lastGoodChanged = lastGoodProfile !== nextProfile.profileId;
 
-  if (!dryRun) {
+  if (!dryRun && (!profileMatches || lastGoodChanged)) {
     const nextStore = {
       ...existingStore,
       version: existingStore.version || 1,
@@ -174,6 +180,7 @@ function syncOpenAICodexProfile(paths, dryRun) {
 
   return {
     imported: !profileMatches,
+    changed: !profileMatches || lastGoodChanged,
     reason: profileMatches ? "already-imported" : "imported",
     profileId: nextProfile.profileId,
   };
@@ -189,9 +196,10 @@ function configureState(paths, options) {
   const syncResult = syncCodexAuth(paths, dryRun);
   const oauthResult = syncOpenAICodexProfile(paths, dryRun);
   const patchResult = patchConfig(config, options);
-  const backupPath = buildBackupPath(paths.openclawConfig);
+  const configChanged = !jsonEquals(config, patchResult.config);
+  const backupPath = configChanged ? buildBackupPath(paths.openclawConfig) : null;
 
-  if (!dryRun) {
+  if (!dryRun && configChanged) {
     copyFile(paths.openclawConfig, backupPath, false);
     writeJson(paths.openclawConfig, patchResult.config, false);
   }
@@ -205,8 +213,10 @@ function configureState(paths, options) {
     backupPath,
     model: options.model || DEFAULT_MODEL,
     transport: options.transport || DEFAULT_TRANSPORT,
+    configChanged,
     oauthProfileId: oauthResult.profileId,
     importedOauthProfile: oauthResult.imported,
+    oauthStoreChanged: oauthResult.changed,
     updatedAgent: patchResult.updatedAgent,
     needsOauthImport:
       !oauthResult.profileId &&
@@ -219,6 +229,7 @@ module.exports = {
   configureState,
   decodeJwtPayload,
   ensureModelObject,
+  jsonEquals,
   patchConfig,
   syncOpenAICodexProfile,
   syncCodexAuth,
