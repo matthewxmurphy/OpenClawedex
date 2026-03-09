@@ -97,6 +97,7 @@ Update OpenClaw to use Codex as the primary model path.
 By default this command:
 
 - syncs the chosen `auth.json` into the target `~/.codex/auth.json`
+- imports a matching `openai-codex` OAuth profile into `auth-profiles.json` when usable Codex tokens are present
 - updates `agents.defaults.model.primary`
 - adds `agents.defaults.models["openai-codex/gpt-5.4"].params.transport = "auto"`
 - updates the selected agent override if that agent exists
@@ -138,19 +139,25 @@ openclawedex doctor --openclaw-home /home/openclaw/.openclaw
 1. Copy or create Codex auth for the target runtime user.
 2. Run `openclawedex inspect`.
 3. Run `openclawedex configure`.
-4. Run the real OpenClaw OAuth import if `auth-profiles.json` still lacks `openai-codex`:
+4. Re-run `openclawedex doctor`.
+
+If the doctor still reports a missing `openai-codex` runtime profile, the local
+`auth.json` did not contain usable OAuth tokens and you still need the native
+OpenClaw login flow:
 
 ```bash
 openclaw models auth login --provider openai-codex
 ```
 
-5. Re-run `openclawedex doctor`.
-
 ## Important limitation
 
-This project can sync `~/.codex/auth.json` and set the model defaults, but it does not fake OpenClaw's provider auth store.
+This project can sync `~/.codex/auth.json`, import an `openai-codex` OAuth
+profile from usable Codex tokens, and set the model defaults. It still does not
+manufacture missing OAuth tokens out of thin air.
 
-If `auth-profiles.json` does not yet contain an `openai-codex` profile, OpenClawedex will tell you that directly. That step still belongs to OpenClaw itself.
+If the source `auth.json` lacks usable `access_token` / `refresh_token` values,
+OpenClawedex will tell you that directly and you still need the native OpenClaw
+OAuth login flow.
 
 ## Development
 

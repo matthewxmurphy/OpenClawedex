@@ -6,7 +6,11 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 
-const { patchConfig } = require("../src/lib/mutation");
+const { buildOpenAICodexProfile, patchConfig } = require("../src/lib/mutation");
+
+function makeJwt(payload) {
+  return `header.${Buffer.from(JSON.stringify(payload)).toString("base64url")}.sig`;
+}
 
 test("patchConfig rewrites default model and transport", () => {
   const input = {
@@ -65,5 +69,29 @@ test("patchConfig keeps object-shaped agent overrides object-shaped", () => {
   assert.deepEqual(config.agents.list[0].model, {
     primary: "openai-codex/gpt-5.4",
     fallbacks: ["openrouter/auto"],
+  });
+});
+
+test("buildOpenAICodexProfile maps codex auth.json into auth-profiles shape", () => {
+  const accessToken = makeJwt({ exp: 1774000000 });
+  const idToken = makeJwt({ email: "peach.patch.0g@icloud.com" });
+  const profile = buildOpenAICodexProfile({
+    tokens: {
+      access_token: accessToken,
+      refresh_token: "rt_test",
+      id_token: idToken,
+      account_id: "acct_123",
+    },
+  });
+
+  assert.equal(profile.profileId, "openai-codex:peach.patch.0g@icloud.com");
+  assert.deepEqual(profile.credential, {
+    type: "oauth",
+    provider: "openai-codex",
+    access: accessToken,
+    refresh: "rt_test",
+    expires: 1774000000 * 1000,
+    accountId: "acct_123",
+    email: "peach.patch.0g@icloud.com",
   });
 });

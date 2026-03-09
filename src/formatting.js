@@ -52,12 +52,16 @@ function formatConfigure(result, dryRun) {
     lines.push(`Updated agent override: ${result.updatedAgent}`);
   }
 
-  if (result.needsOauthImport) {
+  if (result.importedOauthProfile) {
     lines.push(
-      "OpenAI Codex OAuth is still missing from auth-profiles.json. Run `openclaw models auth login --provider openai-codex` as the target OpenClaw user.",
+      `${dryRun ? "Would import" : "Imported"} OpenAI Codex auth profile: ${result.oauthProfileId}`,
     );
-  } else {
-    lines.push("OpenAI Codex auth profile is already present.");
+  } else if (result.oauthProfileId) {
+    lines.push(`OpenAI Codex auth profile already present: ${result.oauthProfileId}`);
+  } else if (result.needsOauthImport) {
+    lines.push(
+      "OpenAI Codex OAuth is still missing from auth-profiles.json because no usable tokens were found in auth.json.",
+    );
   }
 
   return lines;
