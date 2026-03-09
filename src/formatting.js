@@ -16,6 +16,12 @@ function printLines(lines) {
   process.stdout.write(`${lines.join("\n")}\n`);
 }
 
+function formatBridgeTools(tools) {
+  return tools
+    .map((tool) => `${tool.tool}${tool.supportMode ? `(${tool.supportMode})` : ""}`)
+    .join(", ");
+}
+
 function formatInspect(summary) {
   const lines = [
     `Codex auth: ${summary.codexAuthExists ? "found" : "missing"} (${summary.paths.codexAuth})`,
@@ -26,6 +32,18 @@ function formatInspect(summary) {
     `OpenAI Codex auth profiles: ${summary.openaiCodexProfiles.length > 0 ? summary.openaiCodexProfiles.join(", ") : "none"}`,
     `OpenAI API auth profiles: ${summary.openaiProfiles.length > 0 ? summary.openaiProfiles.join(", ") : "none"}`,
   ];
+
+  if (summary.bridge.anyEnabled) {
+    lines.push(`macOS bridge features: ${summary.bridge.enabledTools.length} enabled`);
+    if (summary.bridge.readyTools.length > 0) {
+      lines.push(`Bridge-ready tools: ${formatBridgeTools(summary.bridge.readyTools)}`);
+    }
+    if (summary.bridge.missingTools.length > 0) {
+      lines.push(`Bridge-missing tools: ${summary.bridge.missingTools.map((tool) => tool.tool).join(", ")}`);
+    }
+  } else {
+    lines.push("macOS bridge: no enabled channel features detected; bridge checks skipped.");
+  }
 
   if (!summary.codexAuthExists) {
     lines.push("Next step: provide or create a Codex auth.json file.");
@@ -86,6 +104,14 @@ function formatDoctor(summary, expectedModel) {
   findings.push(
     `OpenAI Codex runtime profile: ${summary.openaiCodexProfiles.length > 0 ? "present" : "missing"}`,
   );
+  if (summary.bridge.anyEnabled) {
+    findings.push(`macOS-backed features enabled: ${summary.bridge.enabledTools.map((tool) => tool.label).join(", ")}`);
+    findings.push(
+      `macOS-backed tool resolution: ${summary.bridge.readyTools.length > 0 ? formatBridgeTools(summary.bridge.readyTools) : "none ready yet"}`,
+    );
+  } else {
+    findings.push("macOS-backed features: none enabled; optional bridge checks skipped.");
+  }
 
   if (!summary.codexAuthExists) {
     findings.push("Action: sync or create ~/.codex/auth.json for the runtime user.");
@@ -96,8 +122,16 @@ function formatDoctor(summary, expectedModel) {
   if ((summary.currentAgentModel || summary.currentDefaultModel) !== expectedModel) {
     findings.push("Action: run `openclawedex configure` to point OpenClaw at openai-codex/gpt-5.4.");
   }
+  if (summary.bridge.missingTools.length > 0) {
+    findings.push(
+      `Action: install \`macos-bridge\` from ClawHub or provide local binaries for enabled tools: ${summary.bridge.missingTools.map((tool) => tool.tool).join(", ")}.`,
+    );
+  }
   if (summary.readyForOpenAICodex) {
     findings.push("Status: ready for OpenAI Codex routing.");
+  }
+  if (summary.bridge.anyEnabled && summary.bridge.missingTools.length === 0) {
+    findings.push("Status: enabled macOS-backed tools are resolvable.");
   }
 
   return findings;

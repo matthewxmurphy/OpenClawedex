@@ -5,10 +5,11 @@
 </p>
 
 <p align="center">
-  <img alt="Version 0.0.8" src="https://img.shields.io/badge/version-0.0.8-F28C28?style=for-the-badge">
+  <img alt="Version 0.0.9" src="https://img.shields.io/badge/version-0.0.9-F28C28?style=for-the-badge">
   <img alt="OpenClaw Gateway Ops" src="https://img.shields.io/badge/OpenClaw-gateway%20ops-0EA5E9?style=for-the-badge">
   <img alt="Codex OAuth" src="https://img.shields.io/badge/Codex-OAuth-1D4ED8?style=for-the-badge">
   <img alt="GPT-5.4 Ready" src="https://img.shields.io/badge/GPT--5.4-ready-7C3AED?style=for-the-badge">
+  <img alt="Optional macOS Bridge" src="https://img.shields.io/badge/macOS-bridge%20aware-2563EB?style=for-the-badge">
   <img alt="Node 20+" src="https://img.shields.io/badge/node-20%2B-16A34A?style=for-the-badge">
 </p>
 
@@ -35,6 +36,7 @@ OpenClawedex is for:
 - updating OpenClaw defaults to `openai-codex/gpt-5.4`
 - leaving timestamped backups before config edits
 - producing a human-readable doctor report with next steps
+- checking macOS-backed feature readiness only when those features are enabled
 
 OpenClawedex is not for:
 
@@ -59,7 +61,7 @@ src/
     doctor.js             Higher-level readiness report
   lib/
     files.js              JSON/file/backup helpers
-    state.js              OpenClaw/Codex state inspection
+    state.js              OpenClaw/Codex plus optional bridge inspection
     mutation.js           Config rewrite logic
 docs/
   architecture.md         Why the project exists
@@ -69,6 +71,7 @@ examples/
   openclaw.json.example   Example target config shape
 test/
   cli.test.js             CLI parsing and formatting checks
+  state.test.js           Optional bridge readiness checks
   mutation.test.js        Config rewrite behavior
 ```
 
@@ -135,6 +138,7 @@ It answers:
 - what is already correct
 - what still needs a real OpenClaw OAuth import
 - whether the current config already points at Codex
+- whether enabled macOS-backed features already resolve locally or through wrappers
 
 Example:
 
@@ -156,6 +160,76 @@ OpenClaw login flow:
 ```bash
 openclaw models auth login --provider openai-codex
 ```
+
+## Optional macOS bridge support
+
+OpenClawedex now treats the Mac bridge as optional capability, not a hard dependency.
+
+The rule is:
+
+- if a Mac-backed feature is disabled in `openclaw.json`, OpenClawedex skips it
+- if the feature is enabled and the binary already exists locally on Linux, OpenClawedex counts that as supported
+- if the feature is enabled and the binary is missing, OpenClawedex tells you to install `macos-bridge`
+
+Supported feature-to-tool checks:
+
+- `channels.imessage` -> `imsg`
+- `channels.reminders` -> `remindctl`
+- `channels.notes` -> `memo`
+- `channels.things` -> `things`
+- `channels.peekaboo` -> `peekaboo`
+
+Example feature config:
+
+```json
+{
+  "channels": {
+    "imessage": {
+      "enabled": true,
+      "remoteHost": "agent2@192.168.88.12"
+    },
+    "notes": {
+      "enabled": true,
+      "remoteHost": "agent2@192.168.88.12"
+    },
+    "reminders": {
+      "enabled": false
+    }
+  }
+}
+```
+
+If one of those features is enabled and you want the Mac-owned implementation on a Linux gateway:
+
+```bash
+clawhub install macos-bridge
+```
+
+Then install wrappers from the skill folder. With `channels.*.enabled` and `remoteHost` already present in `openclaw.json`, the pack installer now auto-selects only the enabled tools:
+
+```bash
+cd ~/.openclaw/skills/macos-bridge
+scripts/install-macos-pack.sh \
+  --target-dir /usr/local/bin \
+  --openclaw-config /home/openclaw/.openclaw/openclaw.json \
+  --default-host agent2@192.168.88.12 \
+  --ssh-key /home/openclaw/.openclaw/keys/macos-bridge_ed25519 \
+  --known-hosts /home/openclaw/.ssh/known_hosts
+```
+
+Verification:
+
+```bash
+scripts/verify-macos-pack.sh \
+  --target-dir /usr/local/bin \
+  --openclaw-config /home/openclaw/.openclaw/openclaw.json
+```
+
+That keeps the workflow honest:
+
+- disabled features do not create fake failures
+- local Linux installs still count as support
+- only enabled Mac-backed features need the bridge skill
 
 ## Important limitation
 

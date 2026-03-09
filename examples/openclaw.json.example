@@ -20,5 +20,18 @@
         }
       }
     ]
+  },
+  "channels": {
+    "imessage": {
+      "enabled": true,
+      "remoteHost": "agent2@192.168.88.12"
+    },
+    "notes": {
+      "enabled": true,
+      "remoteHost": "agent2@192.168.88.12"
+    },
+    "reminders": {
+      "enabled": false
+    }
   }
 }
