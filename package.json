@@ -1,0 +1,27 @@
+{
+  "name": "openclawedex",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Standalone tooling for running OpenClaw gateways on Codex OAuth and openai-codex/gpt-5.4.",
+  "author": "Matthew X. Murphy",
+  "bin": {
+    "openclawedex": "./bin/openclawedex.js"
+  },
+  "scripts": {
+    "inspect": "node ./bin/openclawedex.js inspect",
+    "configure": "node ./bin/openclawedex.js configure",
+    "doctor": "node ./bin/openclawedex.js doctor",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "keywords": [
+    "openclaw",
+    "codex",
+    "oauth",
+    "gpt-5.4",
+    "gateway"
+  ],
+  "license": "MIT"
+}
