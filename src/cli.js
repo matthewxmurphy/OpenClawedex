@@ -94,21 +94,25 @@ function parseArgs(argv) {
 }
 
 function main(argv) {
-  const { command, args } = parseArgs(argv);
-  const paths = resolvePaths(args);
+  try {
+    const { command, args } = parseArgs(argv);
+    const paths = resolvePaths(args);
 
-  switch (command) {
-    case "inspect":
-      runInspect(paths, args);
-      return;
-    case "configure":
-      runConfigure(paths, args);
-      return;
-    case "doctor":
-      runDoctor(paths, args);
-      return;
-    default:
-      fail(`Unknown command: ${command}`);
+    switch (command) {
+      case "inspect":
+        runInspect(paths, args);
+        return;
+      case "configure":
+        runConfigure(paths, args);
+        return;
+      case "doctor":
+        runDoctor(paths, args);
+        return;
+      default:
+        fail(`Unknown command: ${command}`);
+    }
+  } catch (error) {
+    fail(error instanceof Error ? error.message : String(error));
   }
 }
 

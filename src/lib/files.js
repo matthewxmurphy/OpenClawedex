@@ -18,7 +18,20 @@ function exists(filePath) {
 
 function readJsonIfExists(filePath) {
   if (!exists(filePath)) return null;
-  return JSON.parse(fs.readFileSync(filePath, "utf8"));
+  let lastError = null;
+
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const raw = fs.readFileSync(filePath, "utf8");
+    try {
+      return JSON.parse(raw);
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw new Error(
+    `Invalid JSON in ${filePath}: ${lastError instanceof Error ? lastError.message : String(lastError)}`,
+  );
 }
 
 function ensureDir(dirPath, dryRun) {
@@ -38,7 +51,9 @@ function copyFile(sourcePath, destinationPath, dryRun) {
 
 function writeFile(filePath, contents, dryRun) {
   if (dryRun) return;
-  fs.writeFileSync(filePath, contents);
+  const tempPath = `${filePath}.tmp-${process.pid}-${Date.now()}`;
+  fs.writeFileSync(tempPath, contents);
+  fs.renameSync(tempPath, filePath);
 }
 
 function readFile(filePath) {
