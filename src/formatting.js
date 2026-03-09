@@ -45,8 +45,13 @@ function formatConfigure(result, dryRun) {
     `Configured default model: ${result.model}`,
     `Transport hint: ${result.transport}`,
     `${result.syncedCodexAuth ? "Synced" : "Did not sync"} Codex auth: ${result.codexAuthDestination}`,
-    `${dryRun ? "Would write backup" : "Backup written"}: ${result.backupPath}`,
   ];
+
+  if (result.backupPath) {
+    lines.push(`${dryRun ? "Would write backup" : "Backup written"}: ${result.backupPath}`);
+  } else {
+    lines.push("Config already matched target; no backup needed.");
+  }
 
   if (result.updatedAgent) {
     lines.push(`Updated agent override: ${result.updatedAgent}`);
