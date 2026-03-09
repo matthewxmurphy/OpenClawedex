@@ -1,5 +1,9 @@
 # OpenClawedex
 
+<p align="center">
+  <img src="docs/media/openclawedex-v0.0.3-social.png" alt="OpenClawedex v0.0.3 release graphic" width="100%">
+</p>
+
 OpenClawedex is standalone tooling for Matthew X. Murphy's OpenClaw gateway workflow.
 
 It exists for one specific operational problem:
