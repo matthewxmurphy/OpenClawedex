@@ -13,6 +13,15 @@
   <img alt="Node 20+" src="https://img.shields.io/badge/node-20%2B-16A34A?style=for-the-badge">
 </p>
 
+<p align="center">
+  <img alt="GitHub stars" src="https://img.shields.io/github/stars/matthewxmurphy/OpenClawedex?style=for-the-badge">
+  <img alt="GitHub forks" src="https://img.shields.io/github/forks/matthewxmurphy/OpenClawedex?style=for-the-badge">
+  <img alt="GitHub issues" src="https://img.shields.io/github/issues/matthewxmurphy/OpenClawedex?style=for-the-badge">
+  <img alt="GitHub pull requests" src="https://img.shields.io/github/issues-pr/matthewxmurphy/OpenClawedex?style=for-the-badge">
+  <img alt="Last commit" src="https://img.shields.io/github/last-commit/matthewxmurphy/OpenClawedex?style=for-the-badge">
+  <img alt="License" src="https://img.shields.io/github/license/matthewxmurphy/OpenClawedex?style=for-the-badge">
+</p>
+
 OpenClawedex is standalone tooling for Matthew X. Murphy's OpenClaw gateway workflow.
 
 It exists for one specific operational problem:
