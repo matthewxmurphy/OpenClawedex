@@ -35,6 +35,51 @@ function ensureModelObject(modelValue, primary) {
   };
 }
 
+function modelPrimary(modelValue) {
+  if (!modelValue) return null;
+  if (typeof modelValue === "string") return modelValue;
+  if (typeof modelValue === "object") return modelValue.primary || null;
+  return null;
+}
+
+function collectDeclaredModelRefs(config) {
+  const refs = new Set();
+  const providers = config?.models?.providers;
+  if (providers && typeof providers === "object") {
+    for (const [providerId, provider] of Object.entries(providers)) {
+      if (!provider || !Array.isArray(provider.models)) continue;
+      for (const model of provider.models) {
+        const modelId = typeof model?.id === "string" ? model.id.trim() : "";
+        if (modelId) refs.add(`${providerId}/${modelId}`);
+      }
+    }
+  }
+
+  const defaultModel = modelPrimary(config?.agents?.defaults?.model);
+  if (defaultModel) refs.add(defaultModel);
+
+  const heartbeatModel = typeof config?.agents?.defaults?.heartbeat?.model === "string"
+    ? config.agents.defaults.heartbeat.model.trim()
+    : "";
+  if (heartbeatModel) refs.add(heartbeatModel);
+
+  const configuredModels = config?.agents?.defaults?.models;
+  if (configuredModels && typeof configuredModels === "object") {
+    for (const ref of Object.keys(configuredModels)) {
+      if (ref.trim()) refs.add(ref.trim());
+    }
+  }
+
+  if (Array.isArray(config?.agents?.list)) {
+    for (const agent of config.agents.list) {
+      const ref = modelPrimary(agent?.model);
+      if (ref) refs.add(ref);
+    }
+  }
+
+  return refs;
+}
+
 function patchConfig(config, options) {
   const model = options.model || DEFAULT_MODEL;
   const transport = options.transport || DEFAULT_TRANSPORT;
@@ -45,6 +90,10 @@ function patchConfig(config, options) {
   next.agents.defaults = next.agents.defaults || {};
   next.agents.defaults.model = ensureModelObject(next.agents.defaults.model, model);
   next.agents.defaults.models = next.agents.defaults.models || {};
+
+  for (const ref of collectDeclaredModelRefs(next)) {
+    next.agents.defaults.models[ref] = next.agents.defaults.models[ref] || {};
+  }
 
   const modelEntry = next.agents.defaults.models[model] || {};
   next.agents.defaults.models[model] = {
@@ -226,10 +275,12 @@ function configureState(paths, options) {
 
 module.exports = {
   buildOpenAICodexProfile,
+  collectDeclaredModelRefs,
   configureState,
   decodeJwtPayload,
   ensureModelObject,
   jsonEquals,
+  modelPrimary,
   patchConfig,
   syncOpenAICodexProfile,
   syncCodexAuth,

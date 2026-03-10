@@ -1,6 +1,6 @@
 {
   "name": "openclawedex",
-  "version": "0.0.9",
+  "version": "0.0.10",
   "private": true,
   "description": "Standalone tooling for running OpenClaw gateways on Codex OAuth, openai-codex/gpt-5.4, and optional macOS bridge checks.",
   "author": "Matthew X. Murphy",

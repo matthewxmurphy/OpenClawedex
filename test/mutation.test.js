@@ -79,6 +79,57 @@ test("patchConfig keeps object-shaped agent overrides object-shaped", () => {
   });
 });
 
+test("patchConfig preserves declared local and cloud model refs", () => {
+  const input = {
+    models: {
+      providers: {
+        ollama: {
+          models: [
+            { id: "llama3.2:3b" },
+          ],
+        },
+        alibaba: {
+          models: [
+            { id: "qwen-plus" },
+          ],
+        },
+      },
+    },
+    agents: {
+      defaults: {
+        model: {
+          primary: "ollama/llama3.2:3b",
+        },
+        heartbeat: {
+          model: "ollama/llama3.2:3b",
+        },
+      },
+      list: [
+        {
+          id: "main",
+          model: "ollama/llama3.2:3b",
+        },
+        {
+          id: "faceless",
+          model: {
+            primary: "alibaba/qwen-plus",
+          },
+        },
+      ],
+    },
+  };
+
+  const { config } = patchConfig(input, {
+    agentId: "main",
+    model: "openai-codex/gpt-5.4",
+    transport: "auto",
+  });
+
+  assert.ok(config.agents.defaults.models["openai-codex/gpt-5.4"]);
+  assert.ok(config.agents.defaults.models["ollama/llama3.2:3b"]);
+  assert.ok(config.agents.defaults.models["alibaba/qwen-plus"]);
+});
+
 test("buildOpenAICodexProfile maps codex auth.json into auth-profiles shape", () => {
   const accessToken = makeJwt({ exp: 1774000000 });
   const idToken = makeJwt({ email: "peach.patch.0g@icloud.com" });
