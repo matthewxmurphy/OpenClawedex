@@ -22,7 +22,7 @@
   <img alt="License" src="https://img.shields.io/github/license/matthewxmurphy/OpenClawedex?style=for-the-badge">
 </p>
 
-OpenClawedex is standalone tooling for Matthew X. Murphy's OpenClaw gateway workflow.
+OpenClawedex is standalone tooling for OpenClaw gateway workflows.
 
 It exists for one specific operational problem:
 
