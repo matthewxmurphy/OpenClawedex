@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <img alt="Version 0.0.11" src="https://img.shields.io/badge/version-0.0.11-F28C28?style=for-the-badge">
+  <img alt="Version 0.0.12" src="https://img.shields.io/badge/version-0.0.12-F28C28?style=for-the-badge">
   <img alt="OpenClaw Gateway Ops" src="https://img.shields.io/badge/OpenClaw-gateway%20ops-0EA5E9?style=for-the-badge">
   <img alt="Codex OAuth" src="https://img.shields.io/badge/Codex-OAuth-1D4ED8?style=for-the-badge">
   <img alt="GPT-5.4 Ready" src="https://img.shields.io/badge/GPT--5.4-ready-7C3AED?style=for-the-badge">
@@ -67,6 +67,7 @@ docs/
   architecture.md         Why the project exists
   gateway-playbook.md     Real-world usage flow
   provider-policy.md      Recommended provider and agent routing
+  issues/                 RAG-friendly issue notes and posting material
   design-notes.md         Design decisions and boundaries
 examples/
   openclaw.json.example   Example target config shape
@@ -173,6 +174,19 @@ OpenClawedex works best when one provider is not doing every job:
 
 The current recommended routing policy is documented in
 [docs/provider-policy.md](docs/provider-policy.md).
+
+## Issue notes for RAG and posts
+
+OpenClawedex also keeps a small issue-note library for recurring OpenClaw
+problems.
+
+Each note is meant to be:
+
+- retrieval-friendly for future debugging
+- specific enough to link in community posts
+- structured enough to turn into Facebook or Reddit copy fast
+
+The current issue-note index lives under [docs/issues](docs/issues).
 
 ## Optional macOS bridge support
 
