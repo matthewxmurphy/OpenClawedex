@@ -57,7 +57,7 @@ OpenClawedex will now check whether the matching tools already resolve:
 Recommended sequence:
 
 1. Set `channels.<feature>.enabled = true` and `remoteHost = user@mac-host` in `openclaw.json`.
-2. Install the skill:
+2. Install the live [macos-bridge skill](https://clawhub.ai/matthewxmurphy/macos-bridge):
 
 ```bash
 clawhub install macos-bridge
