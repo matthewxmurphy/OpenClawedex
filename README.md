@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <img alt="Version 0.0.9" src="https://img.shields.io/badge/version-0.0.9-F28C28?style=for-the-badge">
+  <img alt="Version 0.0.11" src="https://img.shields.io/badge/version-0.0.11-F28C28?style=for-the-badge">
   <img alt="OpenClaw Gateway Ops" src="https://img.shields.io/badge/OpenClaw-gateway%20ops-0EA5E9?style=for-the-badge">
   <img alt="Codex OAuth" src="https://img.shields.io/badge/Codex-OAuth-1D4ED8?style=for-the-badge">
   <img alt="GPT-5.4 Ready" src="https://img.shields.io/badge/GPT--5.4-ready-7C3AED?style=for-the-badge">
@@ -66,6 +66,7 @@ src/
 docs/
   architecture.md         Why the project exists
   gateway-playbook.md     Real-world usage flow
+  provider-policy.md      Recommended provider and agent routing
   design-notes.md         Design decisions and boundaries
 examples/
   openclaw.json.example   Example target config shape
@@ -160,6 +161,18 @@ OpenClaw login flow:
 ```bash
 openclaw models auth login --provider openai-codex
 ```
+
+## Provider policy
+
+OpenClawedex works best when one provider is not doing every job:
+
+- `main` stays on `openai-codex/gpt-5.4`
+- heartbeat and recurring health jobs stay on local Ollama
+- named worker lanes can use lower-cost cloud providers
+- optional burst providers such as xAI or Big Pickle stay off the critical path
+
+The current recommended routing policy is documented in
+[docs/provider-policy.md](docs/provider-policy.md).
 
 ## Optional macOS bridge support
 

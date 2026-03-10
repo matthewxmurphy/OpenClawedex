@@ -2,6 +2,9 @@
 
 This is the practical flow OpenClawedex is designed around.
 
+For the current recommended model and provider split, see
+[provider-policy.md](provider-policy.md).
+
 ## Scenario
 
 - Codex is signed in on a laptop or admin machine
