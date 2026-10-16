@@ -1,7 +1,10 @@
+// Copyright (c) 2026 Matthew X Murphy — https://MatthewxMurphy.com
+// Product: https://builtnotbegged.com — SPDX-License-Identifier: MIT
 "use strict";
 
 const fs = require("fs");
 const path = require("path");
+const { randomUUID } = require("crypto");
 
 /**
  * OpenClawedex
@@ -36,7 +39,9 @@ function readJsonIfExists(filePath) {
 
 function ensureDir(dirPath, dryRun) {
   if (dryRun) return;
-  fs.mkdirSync(dirPath, { recursive: true });
+  fs.mkdirSync(dirPath, { recursive: true, mode: 0o700 });
+  if (fs.lstatSync(dirPath).isSymbolicLink()) throw new Error("Private directory cannot be a symlink");
+  fs.chmodSync(dirPath, 0o700);
 }
 
 function setMode(filePath, mode, dryRun) {
@@ -46,14 +51,32 @@ function setMode(filePath, mode, dryRun) {
 
 function copyFile(sourcePath, destinationPath, dryRun) {
   if (dryRun) return;
-  fs.copyFileSync(sourcePath, destinationPath);
+  writeFile(destinationPath, fs.readFileSync(sourcePath), false);
 }
 
 function writeFile(filePath, contents, dryRun) {
   if (dryRun) return;
-  const tempPath = `${filePath}.tmp-${process.pid}-${Date.now()}`;
-  fs.writeFileSync(tempPath, contents);
-  fs.renameSync(tempPath, filePath);
+  // OAuth stores and OpenClaw config may contain credentials. Protect the new
+  // inode before writing bytes; chmod after rename would leave an exposure window.
+  let existing;
+  try { existing = fs.lstatSync(filePath); }
+  catch (error) { if (error.code !== "ENOENT") throw error; }
+  if (existing && existing.isSymbolicLink()) {
+    throw new Error("Private file cannot be a symlink");
+  }
+  const tempPath = `${filePath}.tmp-${randomUUID()}`;
+  let descriptor;
+  try {
+    descriptor = fs.openSync(tempPath, fs.constants.O_WRONLY | fs.constants.O_CREAT | fs.constants.O_EXCL | fs.constants.O_NOFOLLOW, 0o600);
+    fs.writeFileSync(descriptor, contents);
+    fs.fsyncSync(descriptor);
+    fs.closeSync(descriptor);
+    descriptor = undefined;
+    fs.renameSync(tempPath, filePath);
+  } finally {
+    if (descriptor !== undefined) fs.closeSync(descriptor);
+    if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
+  }
 }
 
 function readFile(filePath) {

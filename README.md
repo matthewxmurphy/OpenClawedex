@@ -288,3 +288,7 @@ Show the release version:
 ```bash
 openclawedex --version
 ```
+
+## Security maintenance
+
+See [security boundaries, configuration and tests](docs/SECURITY-BOUNDARIES.md).
