@@ -1,3 +1,5 @@
+// Copyright (c) 2026 Matthew X Murphy — https://MatthewxMurphy.com
+// Product: https://builtnotbegged.com — SPDX-License-Identifier: MIT
 "use strict";
 
 const path = require("path");
@@ -9,9 +11,9 @@ const {
   copyFile,
   ensureDir,
   exists,
+  protectFile,
   readFile,
   readJsonIfExists,
-  setMode,
   writeFile,
   writeJson,
 } = require("./files");
@@ -123,6 +125,7 @@ function jsonEquals(left, right) {
 }
 
 function syncCodexAuth(paths, dryRun) {
+  protectFile(paths.codexAuthDest, dryRun);
   if (!exists(paths.codexAuth)) {
     return { synced: false, reason: "missing-source-auth" };
   }
@@ -140,7 +143,6 @@ function syncCodexAuth(paths, dryRun) {
 
   const source = readFile(paths.codexAuth);
   writeFile(paths.codexAuthDest, source, dryRun);
-  setMode(paths.codexAuthDest, 0o600, dryRun);
 
   return { synced: true, reason: "copied" };
 }
@@ -193,6 +195,7 @@ function buildOpenAICodexProfile(authJson) {
 }
 
 function syncOpenAICodexProfile(paths, dryRun) {
+  protectFile(paths.authProfiles, dryRun);
   if (!exists(paths.codexAuth)) {
     return { imported: false, reason: "missing-source-auth", profileId: null };
   }
@@ -237,6 +240,7 @@ function syncOpenAICodexProfile(paths, dryRun) {
 
 function configureState(paths, options) {
   const dryRun = Boolean(options.dryRun);
+  protectFile(paths.openclawConfig, dryRun);
   const config = readJsonIfExists(paths.openclawConfig);
   if (!config) {
     throw new Error(`OpenClaw config not found at ${paths.openclawConfig}`);
