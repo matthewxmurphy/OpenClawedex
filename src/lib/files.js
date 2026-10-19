@@ -39,9 +39,55 @@ function readJsonIfExists(filePath) {
 
 function ensureDir(dirPath, dryRun) {
   if (dryRun) return;
-  fs.mkdirSync(dirPath, { recursive: true, mode: 0o700 });
-  if (fs.lstatSync(dirPath).isSymbolicLink()) throw new Error("Private directory cannot be a symlink");
-  fs.chmodSync(dirPath, 0o700);
+  // Inspect every component before descending: recursive mkdir follows an
+  // intermediate symlink, even when the final directory itself is not a link.
+  const absolute = path.resolve(dirPath);
+  let current = path.parse(absolute).root;
+  for (const component of absolute.slice(current.length).split(path.sep).filter(Boolean)) {
+    current = path.join(current, component);
+    let stat;
+    try { stat = fs.lstatSync(current); }
+    catch (error) {
+      if (error.code !== "ENOENT") throw error;
+      try { fs.mkdirSync(current, { mode: 0o700 }); }
+      catch (mkdirError) { if (mkdirError.code !== "EEXIST") throw mkdirError; }
+      stat = fs.lstatSync(current);
+    }
+    if (stat.isSymbolicLink()) throw new Error("Private directory cannot be a symlink");
+    if (!stat.isDirectory()) throw new Error("Private directory must be a directory");
+    if (current === absolute) {
+      const descriptor = fs.openSync(current, fs.constants.O_RDONLY | fs.constants.O_DIRECTORY | fs.constants.O_NOFOLLOW);
+      try {
+        const opened = fs.fstatSync(descriptor);
+        if (opened.dev !== stat.dev || opened.ino !== stat.ino) throw new Error("Private directory changed while opening");
+        fs.fchmodSync(descriptor, opened.mode & 0o700);
+      } finally { fs.closeSync(descriptor); }
+    }
+  }
+}
+
+function privateFileState(filePath) {
+  let stat;
+  try { stat = fs.lstatSync(filePath); }
+  catch (error) { if (error.code !== "ENOENT") throw error; }
+  if (stat && stat.isSymbolicLink()) throw new Error("Private file cannot be a symlink");
+  if (stat && (!stat.isFile() || stat.nlink !== 1)) throw new Error("Private file must be a regular file with one link");
+  return stat;
+}
+
+// Matching contents still need protection. This changes only the managed
+// destination, never an external source-auth path supplied by the operator.
+function protectFile(filePath, dryRun) {
+  if (dryRun) return;
+  ensureDir(path.dirname(filePath), false);
+  const stat = privateFileState(filePath);
+  if (!stat) return;
+  const descriptor = fs.openSync(filePath, fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW);
+  try {
+    const opened = fs.fstatSync(descriptor);
+    if (opened.dev !== stat.dev || opened.ino !== stat.ino) throw new Error("Private file changed while opening");
+    fs.fchmodSync(descriptor, opened.mode & 0o600);
+  } finally { fs.closeSync(descriptor); }
 }
 
 function setMode(filePath, mode, dryRun) {
@@ -58,24 +104,26 @@ function writeFile(filePath, contents, dryRun) {
   if (dryRun) return;
   // OAuth stores and OpenClaw config may contain credentials. Protect the new
   // inode before writing bytes; chmod after rename would leave an exposure window.
-  let existing;
-  try { existing = fs.lstatSync(filePath); }
-  catch (error) { if (error.code !== "ENOENT") throw error; }
-  if (existing && existing.isSymbolicLink()) {
-    throw new Error("Private file cannot be a symlink");
-  }
+  ensureDir(path.dirname(filePath), false);
+  const existing = privateFileState(filePath);
+  const mode = existing ? existing.mode & 0o600 : 0o600;
   const tempPath = `${filePath}.tmp-${randomUUID()}`;
   let descriptor;
+  let ownsTemp = false;
   try {
     descriptor = fs.openSync(tempPath, fs.constants.O_WRONLY | fs.constants.O_CREAT | fs.constants.O_EXCL | fs.constants.O_NOFOLLOW, 0o600);
+    ownsTemp = true;
+    fs.fchmodSync(descriptor, mode);
     fs.writeFileSync(descriptor, contents);
     fs.fsyncSync(descriptor);
-    fs.closeSync(descriptor);
+    const completed = descriptor;
     descriptor = undefined;
+    fs.closeSync(completed);
     fs.renameSync(tempPath, filePath);
+    ownsTemp = false;
   } finally {
-    if (descriptor !== undefined) fs.closeSync(descriptor);
-    if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
+    try { if (descriptor !== undefined) fs.closeSync(descriptor); }
+    finally { if (ownsTemp) fs.unlinkSync(tempPath); }
   }
 }
 
@@ -108,6 +156,7 @@ module.exports = {
   ensureDir,
   exists,
   fileName,
+  protectFile,
   readFile,
   readJsonIfExists,
   setMode,
